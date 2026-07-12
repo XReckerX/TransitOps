@@ -78,14 +78,24 @@ export default function AppLayout({ children }) {
     return allowed.includes(item.to);
   });
 
+  const initials = (user.name || "U")
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase()
+
   return (
     <div className="dark flex min-h-svh bg-background text-foreground">
-      <aside className="flex w-52 shrink-0 flex-col border-r border-border bg-card/40 px-3 py-4">
-        <div className="mb-6 flex items-center gap-2 px-1">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-orange-500">
+      <aside className="flex w-52 shrink-0 flex-col border-r border-sidebar-border bg-sidebar px-3 py-4">
+        <div className="mb-7 flex items-center gap-2.5 px-1">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 shadow-lg shadow-orange-500/25">
             <Truck className="size-4 text-neutral-900" />
           </div>
-          <span className="text-sm font-semibold">TransitOps</span>
+          <div>
+            <span className="text-sm font-semibold tracking-tight">TransitOps</span>
+            <p className="text-[10px] leading-none text-muted-foreground">Fleet Operations</p>
+          </div>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5">
           {visibleNav.map((item) => (
@@ -93,13 +103,13 @@ export default function AppLayout({ children }) {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors " +
+                "group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-all duration-150 " +
                 (isActive
-                  ? "bg-orange-500/15 text-orange-400"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground")
+                  ? "bg-gradient-to-r from-orange-500/15 to-orange-500/0 text-orange-400 shadow-[inset_2px_0_0_0_theme(colors.orange.500)]"
+                  : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground")
               }
             >
-              <item.icon className="size-4" />
+              <item.icon className="size-4 shrink-0" />
               {item.label}
             </NavLink>
           ))}
@@ -107,13 +117,16 @@ export default function AppLayout({ children }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-sm">
           <div className="relative w-72 max-w-[40vw]">
             <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search..." className="h-7 pl-8 text-xs" />
+            <Input placeholder="Search..." className="h-7 border-transparent bg-muted/60 pl-8 text-xs focus-visible:border-ring focus-visible:bg-card" />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
+              <div className="flex size-6 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-[10px] font-semibold text-neutral-900">
+                {initials}
+              </div>
               <span className="text-xs text-muted-foreground">{user.name}</span>
               <Badge variant="info">{user.role}</Badge>
             </div>
