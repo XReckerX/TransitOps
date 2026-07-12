@@ -27,6 +27,13 @@ const NAV = [
   { to: "/settings", label: "Settings", icon: Settings },
 ]
 
+const ROLE_ACCESS = {
+  FleetManager: ["/dashboard", "/fleet", "/drivers", "/trips", "/maintenance", "/fuel-expenses", "/analytics", "/settings"],
+  Driver: ["/dashboard", "/trips", "/fuel-expenses"],
+  SafetyOfficer: ["/drivers", "/analytics"],
+  FinancialAnalyst: ["/fuel-expenses", "/analytics"]
+};
+
 export default function AppLayout({ children }) {
   const navigate = useNavigate();
   const [user, setUser] = useState({ name: "User", role: "Driver" });
@@ -40,7 +47,20 @@ export default function AppLayout({ children }) {
       navigate("/");
     } else {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+
+        // Enforce path restriction
+        const allowedPaths = ROLE_ACCESS[parsedUser.role] || [];
+        const currentPath = window.location.pathname;
+        if (currentPath !== "/" && !allowedPaths.includes(currentPath)) {
+          if (allowedPaths.length > 0) {
+            navigate(allowedPaths[0]);
+          } else {
+            localStorage.clear();
+            navigate("/");
+          }
+        }
       } catch (e) {
         localStorage.clear();
         navigate("/");
@@ -53,6 +73,11 @@ export default function AppLayout({ children }) {
     navigate("/");
   };
 
+  const visibleNav = NAV.filter(item => {
+    const allowed = ROLE_ACCESS[user.role] || [];
+    return allowed.includes(item.to);
+  });
+
   return (
     <div className="dark flex min-h-svh bg-background text-foreground">
       <aside className="flex w-52 shrink-0 flex-col border-r border-border bg-card/40 px-3 py-4">
@@ -63,7 +88,7 @@ export default function AppLayout({ children }) {
           <span className="text-sm font-semibold">TransitOps</span>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5">
-          {NAV.map((item) => (
+          {visibleNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
