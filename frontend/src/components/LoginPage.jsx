@@ -1,17 +1,17 @@
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { Truck, TriangleAlert, Lock } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Truck, TriangleAlert, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 
 const ROLES = [
   {
@@ -34,27 +34,29 @@ const ROLES = [
     label: "Financial Analyst",
     access: "Fuel & Expenses, Analytics",
   },
-]
+];
 
-import { api } from "@/lib/api"
+import { api } from "@/lib/api";
 
 const ROLE_MAP = {
   "fleet-manager": "FleetManager",
-  "dispatcher": "Driver",
+  dispatcher: "Driver",
   "safety-officer": "SafetyOfficer",
-  "financial-analyst": "FinancialAnalyst"
+  "financial-analyst": "FinancialAnalyst",
 };
 
 export default function LoginPage() {
-  const [role, setRole] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
-  const [isRegister, setIsRegister] = useState(false)
-  const [showError, setShowError] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("Invalid credentials")
-  const [isLocked, setIsLocked] = useState(false)
-  const navigate = useNavigate()
+  const [role, setRole] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [transportCompany, setTransportCompany] = useState("");
+  const [isRegister, setIsRegister] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("Invalid credentials");
+  const [isLocked, setIsLocked] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,16 +69,17 @@ export default function LoginPage() {
           name,
           email,
           password,
-          role: ROLE_MAP[role]
+          role: ROLE_MAP[role],
+          transportCompany,
         };
-        const res = await api.post('/auth/register', payload);
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('user', JSON.stringify(res.user));
+        const res = await api.post("/auth/register", payload);
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("user", JSON.stringify(res.user));
         navigate("/dashboard");
       } else {
-        const res = await api.post('/auth/login', { email, password });
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('user', JSON.stringify(res.user));
+        const res = await api.post("/auth/login", { email, password });
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("user", JSON.stringify(res.user));
         navigate("/dashboard");
       }
     } catch (err) {
@@ -97,13 +100,17 @@ export default function LoginPage() {
           </div>
           <div>
             <p className="text-lg font-semibold leading-tight">TransitOps</p>
-            <p className="text-xs text-neutral-500">Smart Transport Operations Platform</p>
+            <p className="text-xs text-neutral-500">
+              Smart Transport Operations Platform
+            </p>
           </div>
         </div>
 
         <div className="flex flex-1 flex-col items-center justify-center gap-6 text-center">
           <div className="w-full max-w-md space-y-3">
-            <p className="text-sm font-medium text-neutral-500">One login, four roles</p>
+            <p className="text-sm font-medium text-neutral-500">
+              One login, four roles
+            </p>
             <div className="flex items-center justify-center gap-2">
               {ROLES.map((r) => (
                 <span
@@ -135,7 +142,9 @@ export default function LoginPage() {
               {isRegister ? "Create a new account" : "Sign in to your account"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {isRegister ? "Register with your credentials" : "Enter your credentials to continue"}
+              {isRegister
+                ? "Register with your credentials"
+                : "Enter your credentials to continue"}
             </p>
           </div>
 
@@ -147,28 +156,43 @@ export default function LoginPage() {
                 <TriangleAlert className="mt-0.5 size-4 shrink-0" />
               )}
               <div>
-                <p className="font-medium">{isLocked ? "Account locked" : "Invalid credentials"}</p>
-                <p className="text-destructive/80">
-                  {errorMessage}
+                <p className="font-medium">
+                  {isLocked ? "Account locked" : "Invalid credentials"}
                 </p>
+                <p className="text-destructive/80">{errorMessage}</p>
               </div>
             </div>
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             {isRegister && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Full name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  autoComplete="name"
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    autoComplete="name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="transportCompany">
+                    Transport Company Name
+                  </Label>
+                  <Input
+                    id="transportCompany"
+                    type="text"
+                    placeholder="e.g. SafeTransit Logistics"
+                    value={transportCompany}
+                    onChange={(e) => setTransportCompany(e.target.value)}
+                    required
+                  />
+                </div>
+              </>
             )}
 
             <div className="space-y-2">
@@ -197,7 +221,9 @@ export default function LoginPage() {
                 autoComplete={isRegister ? "new-password" : "current-password"}
               />
               {isRegister && (
-                <p className="text-xs text-muted-foreground">Use at least 6 characters.</p>
+                <p className="text-xs text-muted-foreground">
+                  Use at least 6 characters.
+                </p>
               )}
             </div>
 
@@ -225,12 +251,18 @@ export default function LoginPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Checkbox id="remember" defaultChecked />
-                <Label htmlFor="remember" className="font-normal text-muted-foreground">
+                <Label
+                  htmlFor="remember"
+                  className="font-normal text-muted-foreground"
+                >
                   Remember me
                 </Label>
               </div>
               {!isRegister && (
-                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-primary hover:underline"
+                >
                   Forgot password?
                 </Link>
               )}
@@ -253,5 +285,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

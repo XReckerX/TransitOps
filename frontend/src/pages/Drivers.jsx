@@ -37,6 +37,11 @@ export default function Drivers() {
   const [safetyScore, setSafetyScore] = useState("100")
   const [errorMsg, setErrorMsg] = useState("")
 
+  // Details modal states
+  const [selectedDriver, setSelectedDriver] = useState(null)
+  const [driverTrips, setDriverTrips] = useState([])
+  const [loadingTrips, setLoadingTrips] = useState(false)
+
   const fetchDrivers = async () => {
     try {
       let url = '/drivers';
@@ -55,6 +60,21 @@ export default function Drivers() {
   useEffect(() => {
     fetchDrivers();
   }, [search]);
+
+  const handleRowClick = async (driver) => {
+    setSelectedDriver(driver);
+    setLoadingTrips(true);
+    try {
+      const res = await api.get(`/trips?driver=${driver._id}`);
+      if (res.success) {
+        setDriverTrips(res.data.slice(0, 5));
+      }
+    } catch (err) {
+      console.error("Error fetching driver trips:", err);
+    } finally {
+      setLoadingTrips(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -128,7 +148,11 @@ export default function Drivers() {
             drivers.map((d) => {
               const expired = isExpired(d.licenseExpiryDate);
               return (
-                <TableRow key={d._id}>
+                <TableRow 
+                  key={d._id} 
+                  onClick={() => handleRowClick(d)}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                >
                   <TableCell className="font-medium">{d.name}</TableCell>
                   <TableCell className="font-mono">{d.licenseNumber}</TableCell>
                   <TableCell>{d.licenseCategory}</TableCell>
@@ -260,6 +284,106 @@ export default function Drivers() {
                 <Button type="submit" size="sm">Save Profile</Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Driver Profile Details Modal */}
+      {selectedDriver && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-2xl rounded-lg shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-150">
+            <button 
+              onClick={() => setSelectedDriver(null)}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors border-0 bg-transparent cursor-pointer"
+            >
+              <X className="size-4" />
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
+              Driver Profile: <span className="text-orange-500">{selectedDriver.name}</span>
+            </h2>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 bg-muted/30 p-4 rounded-lg border border-border/50">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">License Number</span>
+                <span className="text-sm font-semibold font-mono uppercase">{selectedDriver.licenseNumber}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Category</span>
+                <span className="text-sm font-semibold">{selectedDriver.licenseCategory}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Expiry Date</span>
+                <span className="text-sm font-semibold">{new Date(selectedDriver.licenseExpiryDate).toLocaleDateString()}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Contact Number</span>
+                <span className="text-sm font-semibold text-muted-foreground">{selectedDriver.contactNumber}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Safety Score</span>
+                <span className="text-sm font-semibold text-green-400">{selectedDriver.safetyScore}%</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Status</span>
+                <div>
+                  <Badge variant={STATUS_VARIANT[selectedDriver.status]} className="mt-1">{selectedDriver.status}</Badge>
+                </div>
+              </div>
+              {selectedDriver.email && (
+                <div className="col-span-2">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Email Address</span>
+                  <span className="text-sm font-semibold text-muted-foreground">{selectedDriver.email}</span>
+                </div>
+              )}
+            </div>
+
+            <h3 className="text-sm font-semibold mb-3 text-foreground">Last 5 Trips History</h3>
+            {loadingTrips ? (
+              <p className="text-xs text-muted-foreground animate-pulse py-4 text-center">Loading trips history...</p>
+            ) : driverTrips.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg">No trips recorded for this driver.</p>
+            ) : (
+              <div className="overflow-hidden rounded-md border border-border">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow>
+                      <TableHead className="py-2 text-[10px] uppercase">Route</TableHead>
+                      <TableHead className="py-2 text-[10px] uppercase">Date</TableHead>
+                      <TableHead className="py-2 text-[10px] uppercase">Distance</TableHead>
+                      <TableHead className="py-2 text-[10px] uppercase">Fuel</TableHead>
+                      <TableHead className="py-2 text-[10px] uppercase">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {driverTrips.map((t) => (
+                      <TableRow key={t._id} className="hover:bg-muted/20">
+                        <TableCell className="py-2 text-xs font-medium">
+                          {t.source} &rarr; {t.destination}
+                        </TableCell>
+                        <TableCell className="py-2 text-xs text-muted-foreground">
+                          {new Date(t.createdAt).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="py-2 text-xs">
+                          {t.actualDistance ? `${t.actualDistance} km` : `${t.plannedDistance} km (est.)`}
+                        </TableCell>
+                        <TableCell className="py-2 text-xs text-muted-foreground">
+                          {t.fuelConsumed ? `${t.fuelConsumed} L` : '-'}
+                        </TableCell>
+                        <TableCell className="py-2 text-xs">
+                          <Badge variant={t.status === 'Completed' ? 'success' : t.status === 'Dispatched' ? 'info' : 'muted'} className="text-[10px] px-1 py-0 h-4">
+                            {t.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            <div className="flex justify-end mt-6 pt-3 border-t border-border">
+              <Button size="sm" onClick={() => setSelectedDriver(null)}>Close Profile</Button>
+            </div>
           </div>
         </div>
       )}

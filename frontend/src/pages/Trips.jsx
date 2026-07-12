@@ -41,6 +41,9 @@ export default function Trips() {
   const [fuelConsumed, setFuelConsumed] = useState("")
   const [actualDistance, setActualDistance] = useState("")
   const [completeError, setCompleteError] = useState("")
+  
+  // Trip details state
+  const [selectedTrip, setSelectedTrip] = useState(null)
 
   const loadData = async () => {
     try {
@@ -313,7 +316,11 @@ export default function Trips() {
               </div>
             ) : (
               trips.map((t) => (
-                <div key={t._id} className="flex items-center justify-between rounded-md border border-border/60 p-3 bg-card/20">
+                <div 
+                  key={t._id} 
+                  onClick={() => setSelectedTrip(t)}
+                  className="flex items-center justify-between rounded-md border border-border/60 p-3 bg-card/20 cursor-pointer hover:border-orange-500/40 hover:bg-card/40 transition-all"
+                >
                   <div>
                     <p className="text-sm font-medium font-mono text-foreground">
                       TR-{t._id.slice(-6).toUpperCase()} &nbsp; 
@@ -340,7 +347,10 @@ export default function Trips() {
                           size="xs" 
                           variant="success" 
                           className="h-7 text-[10px] py-1"
-                          onClick={() => openCompleteModal(t)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openCompleteModal(t);
+                          }}
                         >
                           Complete
                         </Button>
@@ -348,7 +358,10 @@ export default function Trips() {
                           size="xs" 
                           variant="destructive" 
                           className="h-7 text-[10px] py-1"
-                          onClick={() => handleCancelTrip(t._id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelTrip(t._id);
+                          }}
                         >
                           Cancel
                         </Button>
@@ -429,6 +442,114 @@ export default function Trips() {
                 <Button type="submit" size="sm">Submit Completion</Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Trip/Waybill Details Modal */}
+      {selectedTrip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-xl rounded-lg shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-150">
+            <button 
+              onClick={() => setSelectedTrip(null)}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors border-0 bg-transparent cursor-pointer"
+            >
+              <X className="size-4" />
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
+              Waybill Details: <span className="text-orange-500 font-mono">TR-{selectedTrip._id.slice(-6).toUpperCase()}</span>
+            </h2>
+
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              {/* Trip stats */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-semibold text-foreground border-b border-border pb-1 uppercase tracking-wider text-muted-foreground">Route & Planning</h3>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block">Source Location</span>
+                    <span className="text-sm font-medium">{selectedTrip.source}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block">Destination Location</span>
+                    <span className="text-sm font-medium">{selectedTrip.destination}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Cargo Weight</span>
+                      <span className="text-sm font-medium">{selectedTrip.cargoWeight} kg</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Planned Dist.</span>
+                      <span className="text-sm font-medium">{selectedTrip.plannedDistance} km</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Actual Dist.</span>
+                      <span className="text-sm font-medium">{selectedTrip.actualDistance ? `${selectedTrip.actualDistance} km` : '-'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Fuel Consumed</span>
+                      <span className="text-sm font-medium">{selectedTrip.fuelConsumed ? `${selectedTrip.fuelConsumed} L` : '-'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Assignments & Logistics */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-semibold text-foreground border-b border-border pb-1 uppercase tracking-wider text-muted-foreground">Assignments</h3>
+                <div className="space-y-2.5">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block">Assigned Vehicle</span>
+                    {selectedTrip.vehicle ? (
+                      <div>
+                        <span className="text-sm font-medium block">{selectedTrip.vehicle.name}</span>
+                        <span className="text-xs text-muted-foreground font-mono uppercase">{selectedTrip.vehicle.registrationNumber} ({selectedTrip.vehicle.model})</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block">Assigned Driver</span>
+                    {selectedTrip.driver ? (
+                      <div>
+                        <span className="text-sm font-medium block">{selectedTrip.driver.name}</span>
+                        <span className="text-xs text-muted-foreground font-mono uppercase">{selectedTrip.driver.licenseNumber}</span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic">Unassigned</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block">Waybill Status</span>
+                    <Badge variant={STATUS_VARIANT[selectedTrip.status]} className="mt-1">{selectedTrip.status}</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Run logs */}
+            <div className="bg-muted/30 p-3 rounded-lg border border-border/50 text-xs space-y-1.5 mb-6">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold block mb-1">Execution Timestamps</span>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Dispatched At:</span>
+                <span className="font-medium text-foreground">
+                  {selectedTrip.dispatchedAt ? new Date(selectedTrip.dispatchedAt).toLocaleString() : 'Not dispatched yet'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Completed At:</span>
+                <span className="font-medium text-foreground">
+                  {selectedTrip.completedAt ? new Date(selectedTrip.completedAt).toLocaleString() : 'Active or draft status'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-border">
+              <Button size="sm" onClick={() => setSelectedTrip(null)}>Close Details</Button>
+            </div>
           </div>
         </div>
       )}

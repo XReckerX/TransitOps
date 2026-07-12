@@ -46,6 +46,16 @@ export default function Fleet() {
   const [region, setRegion] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
 
+  // Details modal states
+  const [selectedVehicle, setSelectedVehicle] = useState(null)
+  const [vehicleTrips, setVehicleTrips] = useState([])
+  const [loadingTrips, setLoadingTrips] = useState(false)
+  
+  // Upload states
+  const [uploadingDoc, setUploadingDoc] = useState(false)
+  const [docName, setDocName] = useState("")
+  const [docFile, setDocFile] = useState(null)
+
   const fetchVehicles = async () => {
     try {
       let qParts = [];
@@ -66,6 +76,48 @@ export default function Fleet() {
   useEffect(() => {
     fetchVehicles();
   }, [search, typeFilter, statusFilter]);
+
+  const handleRowClick = async (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setLoadingTrips(true);
+    // Reset upload fields
+    setDocName("");
+    setDocFile(null);
+    
+    try {
+      const res = await api.get(`/trips?vehicle=${vehicle._id}`);
+      if (res.success) {
+        setVehicleTrips(res.data.slice(0, 5));
+      }
+    } catch (err) {
+      console.error("Error fetching vehicle trips:", err);
+    } finally {
+      setLoadingTrips(false);
+    }
+  };
+
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!docFile || !selectedVehicle) return;
+    setUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append('document', docFile);
+      formData.append('name', docName || docFile.name);
+      
+      const res = await api.post(`/vehicles/${selectedVehicle._id}/documents`, formData);
+      if (res.success) {
+        setSelectedVehicle(res.data);
+        setDocName("");
+        setDocFile(null);
+        fetchVehicles();
+      }
+    } catch (err) {
+      console.error("Upload failed:", err);
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -155,7 +207,11 @@ export default function Fleet() {
             </TableRow>
           ) : (
             vehicles.map((v) => (
-              <TableRow key={v._id}>
+              <TableRow 
+                key={v._id} 
+                onClick={() => handleRowClick(v)}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+              >
                 <TableCell>
                   <div className="font-medium font-mono">{v.registrationNumber}</div>
                   <div className="text-xs text-muted-foreground">{v.name} ({v.model})</div>
@@ -310,6 +366,167 @@ export default function Fleet() {
                 <Button type="submit" size="sm">Save Vehicle</Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Vehicle Details Modal */}
+      {selectedVehicle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-3xl rounded-lg shadow-2xl p-6 relative animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <button 
+              onClick={() => setSelectedVehicle(null)}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors border-0 bg-transparent cursor-pointer"
+            >
+              <X className="size-4" />
+            </button>
+            <h2 className="text-xl font-bold mb-4 text-foreground flex items-center gap-2">
+              Vehicle Profile: <span className="text-orange-500 font-mono">{selectedVehicle.registrationNumber}</span>
+            </h2>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 bg-muted/30 p-4 rounded-lg border border-border/50">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Name / Description</span>
+                <span className="text-sm font-semibold">{selectedVehicle.name}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Model</span>
+                <span className="text-sm font-semibold">{selectedVehicle.model}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Type</span>
+                <span className="text-sm font-semibold">{selectedVehicle.type}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Capacity</span>
+                <span className="text-sm font-semibold">{selectedVehicle.maxLoadCapacity} kg</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Odometer</span>
+                <span className="text-sm font-semibold">{selectedVehicle.odometer.toLocaleString()} km</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Acquisition Cost</span>
+                <span className="text-sm font-semibold">₹{selectedVehicle.acquisitionCost.toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Region</span>
+                <span className="text-sm font-semibold">{selectedVehicle.region}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Status</span>
+                <div>
+                  <Badge variant={STATUS_VARIANT[selectedVehicle.status]} className="mt-1">{selectedVehicle.status}</Badge>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+              {/* Documents Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-foreground border-b border-border pb-1">Document Management</h3>
+                
+                {/* Upload Form */}
+                <form onSubmit={handleUpload} className="bg-muted/20 border border-border/40 rounded-lg p-3 space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="docName" className="text-[10px] uppercase">Document Title</Label>
+                    <Input 
+                      id="docName"
+                      placeholder="e.g. Insurance 2026"
+                      value={docName}
+                      onChange={(e) => setDocName(e.target.value)}
+                      className="h-7 text-xs"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="docFile" className="text-[10px] uppercase">Select File</Label>
+                    <Input 
+                      id="docFile"
+                      type="file"
+                      onChange={(e) => setDocFile(e.target.files[0])}
+                      className="h-8 text-xs cursor-pointer bg-background"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" size="sm" className="w-full h-7 text-xs" disabled={uploadingDoc}>
+                    {uploadingDoc ? "Uploading..." : "Upload Document"}
+                  </Button>
+                </form>
+
+                {/* Uploaded Documents List */}
+                <div className="space-y-2">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground block">Uploaded Files</span>
+                  {selectedVehicle.documents && selectedVehicle.documents.length > 0 ? (
+                    <div className="space-y-1.5 max-h-[160px] overflow-y-auto">
+                      {selectedVehicle.documents.map((doc, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 rounded-md bg-muted/40 border border-border/50 text-xs">
+                          <span className="font-medium truncate max-w-[70%]">{doc.name}</span>
+                          <a 
+                            href={doc.url} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="text-orange-500 hover:underline font-medium"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            View File
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No documents uploaded.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Trips Section */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground border-b border-border pb-1">Last 5 Trips</h3>
+                {loadingTrips ? (
+                  <p className="text-xs text-muted-foreground animate-pulse py-4 text-center">Loading trips history...</p>
+                ) : vehicleTrips.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg">No trips recorded for this vehicle.</p>
+                ) : (
+                  <div className="overflow-hidden rounded-md border border-border">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead className="py-2 text-[10px] uppercase">Route</TableHead>
+                          <TableHead className="py-2 text-[10px] uppercase">Date</TableHead>
+                          <TableHead className="py-2 text-[10px] uppercase">Distance</TableHead>
+                          <TableHead className="py-2 text-[10px] uppercase">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {vehicleTrips.map((t) => (
+                          <TableRow key={t._id} className="hover:bg-muted/20">
+                            <TableCell className="py-2 text-xs font-medium truncate max-w-[120px]">
+                              {t.source} &rarr; {t.destination}
+                            </TableCell>
+                            <TableCell className="py-2 text-xs text-muted-foreground">
+                              {new Date(t.createdAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="py-2 text-xs">
+                              {t.actualDistance ? `${t.actualDistance} km` : `${t.plannedDistance} km`}
+                            </TableCell>
+                            <TableCell className="py-2 text-xs">
+                              <Badge variant={t.status === 'Completed' ? 'success' : t.status === 'Dispatched' ? 'info' : 'muted'} className="text-[10px] px-1 py-0 h-4">
+                                {t.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6 pt-3 border-t border-border">
+              <Button size="sm" onClick={() => setSelectedVehicle(null)}>Close Profile</Button>
+            </div>
           </div>
         </div>
       )}
