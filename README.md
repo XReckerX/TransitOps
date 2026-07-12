@@ -1,5 +1,19 @@
 # 🚚 TransitOps - Smart Transport Operations Platform
 
+## 🤝 Contributing
+
+```bash
+git clone https://github.com/XReckerX/TransitOps.git
+cd TransitOps
+git checkout -b your-name
+# Make your changes
+git add .
+git commit -m "Short description of your changes"
+git push -u origin your-name
+```
+
+Then, open the repository on GitHub and create a Pull Request (PR) from your branch to `main` for review.
+
 ## 📌 Overview
 
 **TransitOps** is a full-stack Smart Transport Operations Platform designed to digitize and streamline fleet management operations for logistics organizations.
@@ -22,7 +36,7 @@ The goal is to provide logistics companies with better visibility, improved effi
 Many logistics companies still depend on manual processes for managing transportation operations, leading to:
 
 - Scheduling conflicts
-- Vehicle underutilization
+- Vehicle under utilization
 - Missed maintenance schedules
 - Expired driver licenses
 - Incorrect expense tracking
@@ -36,12 +50,12 @@ TransitOps solves these problems by providing an integrated fleet operation mana
 
 The system supports multiple user roles with Role-Based Access Control (RBAC):
 
-| Role | Responsibilities |
-|------|------------------|
-| 🚚 Fleet Manager | Manage vehicles, maintenance, and fleet efficiency |
-| 👨‍✈️ Driver | Create trips, manage assigned vehicles, track deliveries |
-| 🛡️ Safety Officer | Monitor driver compliance, licenses, and safety scores |
-| 💰 Financial Analyst | Analyze expenses, fuel consumption, and profitability |
+| Role                 | Responsibilities                                         |
+| -------------------- | -------------------------------------------------------- |
+| 🚚 Fleet Manager     | Manage vehicles, maintenance, and fleet efficiency       |
+| 👨‍✈️ Driver            | Create trips, manage assigned vehicles, track deliveries |
+| 🛡️ Safety Officer    | Monitor driver compliance, licenses, and safety scores   |
+| 💰 Financial Analyst | Analyze expenses, fuel consumption, and profitability    |
 
 ---
 
@@ -143,7 +157,7 @@ Create and monitor transportation trips.
 - Dispatched
 - Completed
 - Cancelled
-  
+
 ---
 
 # 🔧 Maintenance Management
@@ -180,7 +194,7 @@ Supported records:
 
 Automatically calculates:
 Total Operational Cost = Fuel Cost + Maintenance Cost
-  
+
 ---
 
 # 📈 Reports & Analytics
@@ -190,14 +204,15 @@ TransitOps provides business intelligence through analytics.
 Metrics:
 
 ## Fuel Efficiency
-Fuel Efficiency = Distance / Fuel Consumed
 
+Fuel Efficiency = Distance / Fuel Consumed
 
 ## Fleet Utilization
 
 Tracks how efficiently vehicles are being used.
 
 ## Vehicle ROI
+
 ROI = (Revenue - (Maintenance + Fuel)) / Acquisition Cost
 
 Exports supported:
@@ -224,12 +239,13 @@ The platform enforces important operational rules:
 ✅ Cargo weight cannot exceed vehicle capacity.
 
 ✅ Dispatching a trip automatically updates:
+
 - Vehicle Status → On Trip
 - Driver Status → On Trip
 
 ✅ Completing a trip restores:
+
 - Vehicle Status → Available
 - Driver Status → Available
 
 ---
-
