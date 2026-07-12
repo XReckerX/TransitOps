@@ -46,7 +46,7 @@ const ROLE_MAP = {
 };
 
 export default function LoginPage() {
-  const [role, setRole] = useState("dispatcher")
+  const [role, setRole] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
@@ -150,24 +150,25 @@ export default function LoginPage() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             {isRegister && (
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">Full name</Label>
                 <Input
                   id="name"
                   type="text"
-                  placeholder="John Doe"
+                  placeholder="Enter your full name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  autoComplete="name"
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Work email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@transitops.io"
+                placeholder="Enter your work email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -180,19 +181,23 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={isRegister ? 6 : undefined}
                 autoComplete={isRegister ? "new-password" : "current-password"}
               />
+              {isRegister && (
+                <p className="text-xs text-muted-foreground">Use at least 6 characters.</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="role">Role (RBAC)</Label>
-              <Select value={role} onValueChange={setRole}>
+              <Select value={role} onValueChange={setRole} required>
                 <SelectTrigger id="role" className="w-full">
-                  <SelectValue placeholder="Select a role" />
+                  <SelectValue placeholder="Enter your role" />
                 </SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (
@@ -202,6 +207,11 @@ export default function LoginPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {role && (
+                <p className="text-xs text-muted-foreground">
+                  Access: {ROLES.find((r) => r.value === role)?.access}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-between">
