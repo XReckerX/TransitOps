@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 import { Download } from "lucide-react"
+import LineChart from "@/components/charts/LineChart"
+import DonutChart from "@/components/charts/DonutChart"
+import BarChart from "@/components/charts/BarChart"
+
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const REVENUE_RATE_PER_KG_PER_KM = 0.025 // matches backend analyticsService estimate
 
 export default function Analytics() {
   const [reportData, setReportData] = useState([])
@@ -14,6 +19,9 @@ export default function Analytics() {
     { label: "Average Vehicle ROI", value: "0%" },
   ])
   const [costliestVehicles, setCostliestVehicles] = useState([])
+  const [revenueTrend, setRevenueTrend] = useState([])
+  const [utilizationTrend, setUtilizationTrend] = useState([])
+  const [vehicleTypeSplit, setVehicleTypeSplit] = useState([])
 
   const loadData = async () => {
     try {
@@ -48,19 +56,61 @@ export default function Analytics() {
 
         // Compute top costliest vehicles
         const sorted = [...list].sort((a, b) => b.operationalCost - a.operationalCost);
-        const maxCost = sorted[0]?.operationalCost || 1;
-
-        const topCostliest = sorted.slice(0, 3).map((v, i) => {
-          const pct = Math.round((v.operationalCost / maxCost) * 100);
-          const colors = ["bg-red-500", "bg-amber-500", "bg-blue-500"];
-          return {
-            name: v.registrationNumber,
-            cost: v.operationalCost,
-            pct: pct || 10,
-            color: colors[i] || "bg-muted"
-          };
-        });
+        const topCostliest = sorted.slice(0, 5).map((v) => ({
+          label: v.registrationNumber,
+          value: v.operationalCost || 0,
+        }));
         setCostliestVehicles(topCostliest);
+      }
+
+      // 3. Fetch vehicles for type distribution donut
+      const vehiclesRes = await api.get('/vehicles');
+      if (vehiclesRes.success) {
+        const byType = {};
+        vehiclesRes.data.forEach((v) => {
+          byType[v.type] = (byType[v.type] || 0) + 1;
+        });
+        setVehicleTypeSplit(Object.entries(byType).map(([label, value]) => ({ label, value })));
+      }
+
+      // 4. Fetch trips to derive monthly revenue + utilization trend from real completed/dispatched trips
+      const tripsRes = await api.get('/trips');
+      if (tripsRes.success) {
+        const now = new Date();
+        const last6Months = Array.from({ length: 6 }, (_, i) => {
+          const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+          return { key: `${d.getFullYear()}-${d.getMonth()}`, label: MONTH_LABELS[d.getMonth()] };
+        });
+
+        const revenueByMonth = Object.fromEntries(last6Months.map((m) => [m.key, 0]));
+        const dispatchedByMonth = Object.fromEntries(last6Months.map((m) => [m.key, 0]));
+
+        tripsRes.data.forEach((trip) => {
+          if (trip.status === 'Completed' && trip.completedAt) {
+            const d = new Date(trip.completedAt);
+            const key = `${d.getFullYear()}-${d.getMonth()}`;
+            if (key in revenueByMonth) {
+              revenueByMonth[key] += (trip.cargoWeight || 0) * (trip.actualDistance || 0) * REVENUE_RATE_PER_KG_PER_KM;
+            }
+          }
+          if ((trip.status === 'Dispatched' || trip.status === 'Completed') && trip.dispatchedAt) {
+            const d = new Date(trip.dispatchedAt);
+            const key = `${d.getFullYear()}-${d.getMonth()}`;
+            if (key in dispatchedByMonth) {
+              dispatchedByMonth[key] += 1;
+            }
+          }
+        });
+
+        setRevenueTrend(last6Months.map((m) => ({ label: m.label, value: Math.round(revenueByMonth[m.key]) })));
+
+        const vehicleCount = vehiclesRes.success ? vehiclesRes.data.filter((v) => v.status !== 'Retired').length || 1 : 1;
+        setUtilizationTrend(
+          last6Months.map((m) => ({
+            label: m.label,
+            value: Math.round((dispatchedByMonth[m.key] / vehicleCount) * 100),
+          }))
+        );
       }
     } catch (err) {
       console.error("Error loading analytics data:", err);
@@ -105,9 +155,6 @@ export default function Analytics() {
     }
   };
 
-  // Helper values for mock charts
-  const revenueTrend = [40, 55, 48, 70, 62, 78, 66, 58];
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -141,31 +188,53 @@ export default function Analytics() {
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle>Monthly Revenue Trend</CardTitle></CardHeader>
           <CardContent className="px-3">
-            <div className="flex h-40 items-end gap-2">
-              {revenueTrend.map((v, i) => (
-                <div key={i} className="flex-1 rounded-t bg-blue-500/80" style={{ height: `${v}%` }} />
-              ))}
-            </div>
+            {revenueTrend.every((d) => d.value === 0) ? (
+              <div className="flex h-40 items-center justify-center text-center text-xs text-muted-foreground">
+                No completed trips in the last 6 months yet.
+              </div>
+            ) : (
+              <LineChart data={revenueTrend} valueFormatter={(v) => `₹${v.toLocaleString()}`} />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Vehicle Distribution by Type</CardTitle></CardHeader>
+          <CardContent className="px-3">
+            {vehicleTypeSplit.length === 0 ? (
+              <div className="flex h-40 items-center justify-center text-center text-xs text-muted-foreground">
+                No vehicles registered yet.
+              </div>
+            ) : (
+              <DonutChart data={vehicleTypeSplit} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader><CardTitle>Fleet Utilization Trend</CardTitle></CardHeader>
+          <CardContent className="px-3">
+            {utilizationTrend.every((d) => d.value === 0) ? (
+              <div className="flex h-40 items-center justify-center text-center text-xs text-muted-foreground">
+                No dispatched trips in the last 6 months yet.
+              </div>
+            ) : (
+              <LineChart data={utilizationTrend} valueFormatter={(v) => `${v}%`} color="#3987e5" />
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle>Top Costliest Vehicles</CardTitle></CardHeader>
-          <CardContent className="space-y-4 px-3">
+          <CardContent className="px-3">
             {costliestVehicles.length === 0 ? (
-              <div className="text-center py-8 text-xs text-muted-foreground">
+              <div className="flex h-40 items-center justify-center text-center text-xs text-muted-foreground">
                 No cost metrics found. Log fuel/maintenance first.
               </div>
             ) : (
-              costliestVehicles.map((v) => (
-                <div key={v.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono">{v.name}</span>
-                    <span className="text-muted-foreground">₹{v.cost.toLocaleString()}</span>
-                  </div>
-                  <Progress value={v.pct} barClassName={v.color} />
-                </div>
-              ))
+              <BarChart data={costliestVehicles} valueFormatter={(v) => `₹${v.toLocaleString()}`} />
             )}
           </CardContent>
         </Card>
