@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Truck, TriangleAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,7 +38,8 @@ const ROLES = [
 
 export default function LoginPage() {
   const [role, setRole] = useState("dispatcher")
-  const [showError, setShowError] = useState(true)
+  const [showError, setShowError] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
@@ -107,7 +109,8 @@ export default function LoginPage() {
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault()
-              setShowError(true)
+              setShowError(false)
+              navigate("/dashboard")
             }}
           >
             <div className="space-y-2">
