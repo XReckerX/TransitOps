@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Truck, TriangleAlert } from "lucide-react"
+import { Link, useNavigate } from "react-router-dom"
+import { Truck, TriangleAlert, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -53,12 +53,14 @@ export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false)
   const [showError, setShowError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("Invalid credentials")
+  const [isLocked, setIsLocked] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setShowError(false);
-    
+    setIsLocked(false);
+
     try {
       if (isRegister) {
         const payload = {
@@ -78,7 +80,9 @@ export default function LoginPage() {
         navigate("/dashboard");
       }
     } catch (err) {
-      setErrorMessage(err.message || "Authentication failed");
+      const message = err.message || "Authentication failed";
+      setErrorMessage(message);
+      setIsLocked(/locked/i.test(message));
       setShowError(true);
     }
   };
@@ -137,9 +141,13 @@ export default function LoginPage() {
 
           {showError && (
             <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+              {isLocked ? (
+                <Lock className="mt-0.5 size-4 shrink-0" />
+              ) : (
+                <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+              )}
               <div>
-                <p className="font-medium">Authentication Error</p>
+                <p className="font-medium">{isLocked ? "Account locked" : "Invalid credentials"}</p>
                 <p className="text-destructive/80">
                   {errorMessage}
                 </p>
@@ -221,6 +229,14 @@ export default function LoginPage() {
                   Remember me
                 </Label>
               </div>
+              {!isRegister && (
+                <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              )}
+            </div>
+
+            <div className="text-center">
               <button
                 type="button"
                 onClick={() => setIsRegister(!isRegister)}
