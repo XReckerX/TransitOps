@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import LoginPage from "@/components/LoginPage"
+import ForgotPasswordPage from "@/components/ForgotPasswordPage"
+import ResetPasswordPage from "@/components/ResetPasswordPage"
 import AppLayout from "@/components/AppLayout"
 import Dashboard from "@/pages/Dashboard"
 import Fleet from "@/pages/Fleet"
@@ -23,6 +25,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
         <Route path="/dashboard" element={withLayout(Dashboard)} />
         <Route path="/fleet" element={withLayout(Fleet)} />
         <Route path="/drivers" element={withLayout(Drivers)} />
