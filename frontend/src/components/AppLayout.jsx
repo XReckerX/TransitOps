@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom"
+import { NavLink, useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
 import {
   Truck,
   LayoutDashboard,
@@ -10,6 +11,7 @@ import {
   BarChart3,
   Settings,
   Search,
+  LogOut,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -26,6 +28,31 @@ const NAV = [
 ]
 
 export default function AppLayout({ children }) {
+  const navigate = useNavigate();
+  const [user, setUser] = useState({ name: "User", role: "Driver" });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    if (!token || !storedUser) {
+      localStorage.clear();
+      navigate("/");
+    } else {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        localStorage.clear();
+        navigate("/");
+      }
+    }
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/");
+  };
+
   return (
     <div className="dark flex min-h-svh bg-background text-foreground">
       <aside className="flex w-52 shrink-0 flex-col border-r border-border bg-card/40 px-3 py-4">
@@ -60,9 +87,18 @@ export default function AppLayout({ children }) {
             <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Search..." className="h-7 pl-8 text-xs" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Vihar K.</span>
-            <Badge variant="info">Dispatcher</Badge>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{user.name}</span>
+              <Badge variant="info">{user.role}</Badge>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex size-6 items-center justify-center rounded-md border border-border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Logout"
+            >
+              <LogOut className="size-3.5" />
+            </button>
           </div>
         </header>
         <main className="min-w-0 flex-1 overflow-auto p-4">{children}</main>

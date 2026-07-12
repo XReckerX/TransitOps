@@ -36,10 +36,52 @@ const ROLES = [
   },
 ]
 
+import { api } from "@/lib/api"
+
+const ROLE_MAP = {
+  "fleet-manager": "FleetManager",
+  "dispatcher": "Driver",
+  "safety-officer": "SafetyOfficer",
+  "financial-analyst": "FinancialAnalyst"
+};
+
 export default function LoginPage() {
   const [role, setRole] = useState("dispatcher")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setName] = useState("")
+  const [isRegister, setIsRegister] = useState(false)
   const [showError, setShowError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("Invalid credentials")
   const navigate = useNavigate()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setShowError(false);
+    
+    try {
+      if (isRegister) {
+        const payload = {
+          name,
+          email,
+          password,
+          role: ROLE_MAP[role]
+        };
+        const res = await api.post('/auth/register', payload);
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
+        navigate("/dashboard");
+      } else {
+        const res = await api.post('/auth/login', { email, password });
+        localStorage.setItem('token', res.token);
+        localStorage.setItem('user', JSON.stringify(res.user));
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      setErrorMessage(err.message || "Authentication failed");
+      setShowError(true);
+    }
+  };
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
@@ -86,10 +128,10 @@ export default function LoginPage() {
         <div className="w-full max-w-sm space-y-6">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">
-              Sign in to your account
+              {isRegister ? "Create a new account" : "Sign in to your account"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Enter your credentials to continue
+              {isRegister ? "Register with your credentials" : "Enter your credentials to continue"}
             </p>
           </div>
 
@@ -97,28 +139,38 @@ export default function LoginPage() {
             <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
               <TriangleAlert className="mt-0.5 size-4 shrink-0" />
               <div>
-                <p className="font-medium">Invalid credentials</p>
+                <p className="font-medium">Authentication Error</p>
                 <p className="text-destructive/80">
-                  Account locked after 5 failed attempts.
+                  {errorMessage}
                 </p>
               </div>
             </div>
           )}
 
-          <form
-            className="space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault()
-              setShowError(false)
-              navigate("/dashboard")
-            }}
-          >
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            {isRegister && (
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@transitops.io"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
                 autoComplete="email"
               />
             </div>
@@ -129,7 +181,10 @@ export default function LoginPage() {
                 id="password"
                 type="password"
                 placeholder="••••••••"
-                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete={isRegister ? "new-password" : "current-password"}
               />
             </div>
 
@@ -156,13 +211,17 @@ export default function LoginPage() {
                   Remember me
                 </Label>
               </div>
-              <a href="#" className="text-sm text-primary hover:underline">
-                Forgot password?
-              </a>
+              <button
+                type="button"
+                onClick={() => setIsRegister(!isRegister)}
+                className="text-sm text-primary hover:underline bg-transparent border-0 cursor-pointer"
+              >
+                {isRegister ? "Already have an account?" : "Need an account?"}
+              </button>
             </div>
 
             <Button type="submit" className="w-full">
-              Sign In
+              {isRegister ? "Register" : "Sign In"}
             </Button>
           </form>
         </div>
