@@ -1,6 +1,6 @@
-const User = require('../models/User');
-const generateToken = require('../utils/generateToken');
-const ApiError = require('../utils/ApiError');
+const User = require("../models/User");
+const generateToken = require("../utils/generateToken");
+const ApiError = require("../utils/ApiError");
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -11,14 +11,14 @@ exports.register = async (req, res, next) => {
 
     const userExists = await User.findOne({ email });
     if (userExists) {
-      return next(new ApiError(400, 'User already exists'));
+      return next(new ApiError(400, "User already exists"));
     }
 
     const user = await User.create({
       name,
       email,
       password,
-      role
+      role,
     });
 
     res.status(201).json({
@@ -28,8 +28,8 @@ exports.register = async (req, res, next) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
   } catch (error) {
     next(error);
@@ -44,12 +44,12 @@ exports.login = async (req, res, next) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return next(new ApiError(400, 'Please provide email and password'));
+      return next(new ApiError(400, "Please provide email and password"));
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
     if (!user || !(await user.matchPassword(password))) {
-      return next(new ApiError(401, 'Invalid credentials'));
+      return next(new ApiError(401, "Invalid credentials"));
     }
 
     res.status(200).json({
@@ -59,8 +59,8 @@ exports.login = async (req, res, next) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
   } catch (error) {
     next(error);

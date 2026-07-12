@@ -27,8 +27,10 @@ async function getFleetAnalytics() {
       const completedTrips = await Trip.find({ vehicle: vehicle._id, status: 'Completed' });
       const totalDistance = completedTrips.reduce((sum, trip) => sum + (trip.actualDistance || 0), 0);
 
-      // 5. Fuel Efficiency = Distance / Fuel Consumed
-      const fuelEfficiency = totalFuelLiters > 0 ? (totalDistance / totalFuelLiters) : 0;
+      // 5. Fuel Efficiency = Distance / Fuel Consumed (from completed trips or fuel logs)
+      const totalFuelConsumed = completedTrips.reduce((sum, trip) => sum + (trip.fuelConsumed || 0), 0);
+      const fuelUsed = totalFuelConsumed > 0 ? totalFuelConsumed : totalFuelLiters;
+      const fuelEfficiency = fuelUsed > 0 ? (totalDistance / fuelUsed) : 0;
 
       // 6. Estimated Revenue (Mock revenue based on cargo weight and distance for ROI check)
       // Standard rate: $2.5 per kg per 100km
