@@ -230,3 +230,6 @@ The platform enforces important operational rules:
 ✅ Completing a trip restores:
 - Vehicle Status → Available
 - Driver Status → Available
+
+---
+
